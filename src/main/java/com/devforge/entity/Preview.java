@@ -54,7 +54,6 @@ public class Preview {
 
     private Instant endedAt;
 
-
     private Instant lastAccessedAt;
 
     @CreationTimestamp

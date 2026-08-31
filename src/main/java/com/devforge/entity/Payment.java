@@ -25,7 +25,6 @@ import java.time.Instant;
         }
 )
 public class Payment {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include

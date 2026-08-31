@@ -1,5 +1,6 @@
 package com.devforge.entity;
 
+import com.devforge.entity.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -39,6 +40,16 @@ public class User {
     @Column(nullable = false, length = 100)
     private String password;
 
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(nullable = false, length = 20)
+    private UserRole role = UserRole.USER;
+
+    @Column(length = 512)
+    private String imageUrl;
+
+    @Column(length = 128)
+    private String imageFileId;
 
     @Column(name = "razorpay_customer_id", unique = true, length = 64)
     private String razorpayCustomerId;

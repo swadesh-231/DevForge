@@ -1,6 +1,5 @@
 package com.devforge.entity;
 
-
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -42,10 +41,8 @@ public class ProjectFile {
     @ToString.Include
     private String path;
 
-
     @Column(nullable = false, length = 512)
     private String storageKey;
-
 
     @Column(length = 64)
     private String contentHash;
@@ -54,7 +51,6 @@ public class ProjectFile {
 
     @Column(length = 128)
     private String mimeType;
-
 
     @Version
     private Long version;

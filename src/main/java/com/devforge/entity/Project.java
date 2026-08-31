@@ -36,7 +36,6 @@ public class Project {
     @ToString.Include
     private String name;
 
-
     @Column(nullable = false, unique = true, length = 140)
     private String slug;
 

@@ -30,15 +30,9 @@ public class Plan {
     @ToString.Include
     private String name;
 
-    /**
-     * The plan handle created in Razorpay (plan_xxx). Null for a free tier,
-     * which never reaches checkout. Razorpay bakes price into the plan, so
-     * there is no separate price object to store.
-     */
     @Column(name = "razorpay_plan_id", unique = true, length = 64)
     private String razorpayPlanId;
 
-    /** Minor units (paise). Razorpay is integer-only — never use a floating type for money. */
     @NotNull(message = "Amount is required")
     @Min(value = 0, message = "Amount cannot be negative")
     @Builder.Default
@@ -56,7 +50,6 @@ public class Plan {
     @Column(nullable = false, length = 10)
     private BillingPeriod billingPeriod = BillingPeriod.MONTHLY;
 
-    /** Razorpay `interval`: bill every N periods. */
     @NotNull
     @Min(value = 1, message = "Billing interval must be at least 1")
     @Builder.Default

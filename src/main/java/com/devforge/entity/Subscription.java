@@ -24,7 +24,6 @@ import java.time.Instant;
         }
 )
 public class Subscription {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
@@ -44,7 +43,6 @@ public class Subscription {
     @ToString.Include
     private SubscriptionStatus status;
 
-
     @Column(name = "razorpay_subscription_id", unique = true, length = 64)
     @ToString.Include
     private String razorpaySubscriptionId;
@@ -54,7 +52,6 @@ public class Subscription {
 
     @Column(length = 512)
     private String shortUrl;
-
 
     private Integer totalCount;
 
@@ -81,7 +78,6 @@ public class Subscription {
     private Instant cancelledAt;
 
     private Instant endedAt;
-
 
     @Version
     private Long version;

@@ -1,6 +1,5 @@
 package com.devforge.entity;
 
-
 import com.devforge.entity.enums.ProjectRole;
 import jakarta.persistence.*;
 import lombok.*;
@@ -22,7 +21,6 @@ import java.time.Instant;
         }
 )
 public class ProjectMember {
-
     @EmbeddedId
     @EqualsAndHashCode.Include
     @ToString.Include

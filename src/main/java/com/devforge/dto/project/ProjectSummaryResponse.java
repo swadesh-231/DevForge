@@ -4,7 +4,6 @@ import com.devforge.entity.enums.ProjectRole;
 
 import java.time.Instant;
 
-
 public record ProjectSummaryResponse(
         Long id,
         String name,

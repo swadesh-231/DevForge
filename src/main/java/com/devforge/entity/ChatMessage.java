@@ -26,7 +26,6 @@ import java.util.List;
         }
 )
 public class ChatMessage {
-
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "chat_messages_seq")
     @SequenceGenerator(name = "chat_messages_seq", sequenceName = "chat_messages_seq", allocationSize = 50)

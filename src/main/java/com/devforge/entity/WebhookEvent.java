@@ -8,7 +8,6 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
-
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
@@ -24,18 +23,15 @@ import java.time.Instant;
         }
 )
 public class WebhookEvent {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
     @ToString.Include
     private Long id;
 
-
     @Column(name = "razorpay_event_id", nullable = false, unique = true, length = 64)
     @ToString.Include
     private String razorpayEventId;
-
 
     @Column(nullable = false, length = 64)
     @ToString.Include

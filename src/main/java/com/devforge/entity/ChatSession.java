@@ -24,7 +24,6 @@ import java.util.List;
         }
 )
 public class ChatSession {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include

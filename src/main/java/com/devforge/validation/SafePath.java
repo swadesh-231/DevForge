@@ -15,7 +15,6 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target({METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE})
 @Retention(RUNTIME)
 public @interface SafePath {
-
     String message() default "must be a project-relative path without '..', leading '/' or backslashes";
 
     Class<?>[] groups() default {};

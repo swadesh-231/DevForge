@@ -10,5 +10,4 @@ public class DevForgeApplication {
         EnvConfig.load();
         SpringApplication.run(DevForgeApplication.class, args);
     }
-
 }
