@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: DevForge
+
+  datasource:
+    url: ${DB_URL}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
