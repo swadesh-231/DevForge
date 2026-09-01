@@ -8,4 +8,13 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class UsageRecordServiceImpl implements UsageRecordService {
 
+    @Override
+    public void recordTokenUsage(Long userId, int actualTokens) {
+
+    }
+
+    @Override
+    public void checkDailyTokensUsage() {
+
+    }
 }
