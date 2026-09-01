@@ -1,6 +1,5 @@
 package com.devforge.service.impl;
 
-import com.devforge.config.JwtProperties;
 import com.devforge.dto.auth.AuthResponse;
 import com.devforge.dto.auth.LoginRequest;
 import com.devforge.dto.auth.SignupRequest;
@@ -14,6 +13,8 @@ import com.devforge.mapper.UserMapper;
 import com.devforge.repository.RefreshTokenRepository;
 import com.devforge.repository.UserRepository;
 import com.devforge.security.jwt.JwtService;
+import com.devforge.security.jwt.JwtService.IssuedToken;
+import com.devforge.security.jwt.JwtService.RefreshTokenClaims;
 import com.devforge.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,24 +25,21 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.HexFormat;
+import java.util.Optional;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
-    private static final int REFRESH_TOKEN_BYTES = 64;
+    private static final String TOKEN_TYPE = "Bearer";
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final JwtProperties jwtProperties;
     private final UserMapper userMapper;
-    private final SecureRandom secureRandom = new SecureRandom();
 
     @Override
     @Transactional
@@ -81,18 +79,37 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidTokenException("Refresh token is missing");
         }
 
-        RefreshToken stored = refreshTokenRepository.findByTokenHash(hash(refreshToken))
-                .orElseThrow(() -> new InvalidTokenException("Refresh token is invalid"));
-
+        RefreshTokenClaims claims = jwtService.parseRefreshToken(refreshToken);
         Instant now = Instant.now();
+
+        Optional<RefreshToken> found = refreshTokenRepository.findByTokenHash(hash(refreshToken));
+        if (found.isEmpty()) {
+            log.warn("Refresh token signed for user {} is not on record", claims.userId());
+            refreshTokenRepository.revokeAllByUserId(claims.userId(), now);
+            throw new InvalidTokenException("Refresh token is invalid");
+        }
+
+        RefreshToken stored = found.get();
+        User user = stored.getUser();
+
+        if (!user.getId().equals(claims.userId())) {
+            log.warn("Refresh token claim/owner mismatch: claimed {}, stored {}", claims.userId(), user.getId());
+            throw new InvalidTokenException("Refresh token is invalid");
+        }
+
         if (!stored.isActive(now)) {
-            refreshTokenRepository.revokeAllByUserId(stored.getUser().getId(), now);
-            log.warn("Reuse of an inactive refresh token for user {}", stored.getUser().getId());
+            log.warn("Reuse of an inactive refresh token for user {}", user.getId());
+            refreshTokenRepository.revokeAllByUserId(user.getId(), now);
             throw new InvalidTokenException("Refresh token is no longer valid");
         }
 
+        if (user.getDeletedAt() != null) {
+            refreshTokenRepository.revokeAllByUserId(user.getId(), now);
+            throw new InvalidTokenException("Account is no longer active");
+        }
+
         stored.setRevokedAt(now);
-        return issueTokens(stored.getUser());
+        return issueTokens(user);
     }
 
     @Override
@@ -107,29 +124,22 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private AuthenticationResult issueTokens(User user) {
-        Instant now = Instant.now();
-        String rawRefreshToken = generateRefreshToken();
-
+        IssuedToken refreshToken = jwtService.generateRefreshToken(user);
         refreshTokenRepository.save(RefreshToken.builder()
                 .user(user)
-                .tokenHash(hash(rawRefreshToken))
-                .expiresAt(now.plus(jwtProperties.refreshTokenTtl()))
+                .tokenHash(hash(refreshToken.value()))
+                .expiresAt(refreshToken.expiresAt())
                 .build());
 
+        IssuedToken accessToken = jwtService.generateAccessToken(user);
         AuthResponse response = AuthResponse.builder()
-                .accessToken(jwtService.generateAccessToken(user))
-                .tokenType("Bearer")
-                .expiresAt(now.plus(jwtProperties.accessTokenTtl()))
+                .accessToken(accessToken.value())
+                .tokenType(TOKEN_TYPE)
+                .expiresAt(accessToken.expiresAt())
                 .user(userMapper.toProfile(user))
                 .build();
 
-        return new AuthenticationResult(response, rawRefreshToken);
-    }
-
-    private String generateRefreshToken() {
-        byte[] bytes = new byte[REFRESH_TOKEN_BYTES];
-        secureRandom.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        return new AuthenticationResult(response, refreshToken.value());
     }
 
     private String hash(String token) {

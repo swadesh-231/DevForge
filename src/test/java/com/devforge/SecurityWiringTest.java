@@ -1,5 +1,6 @@
 package com.devforge;
 
+import com.devforge.config.ImageKitProperties;
 import com.devforge.dto.auth.AuthResponse;
 import com.devforge.dto.user.UserProfileResponse;
 import com.devforge.entity.enums.UserRole;
@@ -53,6 +54,18 @@ class SecurityWiringTest {
         assertThat(context.getBean(com.devforge.exception.GlobalExceptionHandler.class)).isNotNull();
         assertThat(context.getBean(io.imagekit.client.ImageKitClient.class)).isNotNull();
         assertThat(context.getBean(com.devforge.mapper.UserMapper.class)).isNotNull();
+    }
+
+    @Test
+    void imageKitPropertiesBindFromTheAppNamespace() {
+        ImageKitProperties properties = context.getBean(ImageKitProperties.class);
+
+        assertThat(properties.publicKey()).isEqualTo("public_test_key");
+        assertThat(properties.privateKey()).isEqualTo("private_test_key");
+        assertThat(properties.urlEndpoint()).isEqualTo("https://ik.imagekit.io/test");
+        assertThat(properties.avatarFolder()).isEqualTo("/devforge/avatars");
+        assertThat(properties.maxAvatarBytes()).isEqualTo(2_097_152L);
+        assertThat(properties.allowedContentTypes()).contains("image/jpeg", "image/png", "image/webp");
     }
 
     @Test

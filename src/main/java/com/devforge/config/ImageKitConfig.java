@@ -7,12 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@EnableConfigurationProperties({
-        ImageKitProperties.class,
-        JwtProperties.class,
-        CookieProperties.class,
-        CorsProperties.class
-})
+@EnableConfigurationProperties(ImageKitProperties.class)
 public class ImageKitConfig {
     @Bean
     public ImageKitClient imageKitClient(ImageKitProperties properties) {

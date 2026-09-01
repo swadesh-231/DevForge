@@ -1,9 +1,13 @@
 package com.devforge.security;
 
+import com.devforge.config.CookieProperties;
+import com.devforge.config.CorsProperties;
+import com.devforge.config.JwtProperties;
 import com.devforge.security.filters.JwtAuthFilter;
 import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,6 +26,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 @Configuration
+@EnableConfigurationProperties({JwtProperties.class, CookieProperties.class, CorsProperties.class})
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor

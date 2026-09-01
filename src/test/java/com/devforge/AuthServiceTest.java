@@ -1,6 +1,7 @@
 package com.devforge;
 
 import com.devforge.config.JwtProperties;
+import com.devforge.config.JwtProperties.TokenProperties;
 import com.devforge.dto.auth.LoginRequest;
 import com.devforge.dto.auth.SignupRequest;
 import com.devforge.entity.RefreshToken;
@@ -35,6 +36,7 @@ class AuthServiceTest {
     private UserRepository userRepository;
     private RefreshTokenRepository refreshTokenRepository;
     private PasswordEncoder passwordEncoder;
+    private JwtServiceImpl jwtService;
     private AuthServiceImpl authService;
 
     @BeforeEach
@@ -44,17 +46,15 @@ class AuthServiceTest {
         passwordEncoder = new BCryptPasswordEncoder();
 
         JwtProperties jwtProperties = new JwtProperties(
-                "test-secret-that-is-definitely-long-enough-32",
-                "devforge",
-                Duration.ofMinutes(15),
-                Duration.ofDays(7));
+                new TokenProperties("test-access-secret-that-is-long-enough-32", Duration.ofMinutes(15)),
+                new TokenProperties("test-refresh-secret-that-is-long-enough-32", Duration.ofDays(7)));
+        jwtService = new JwtServiceImpl(jwtProperties);
 
         authService = new AuthServiceImpl(
                 userRepository,
                 refreshTokenRepository,
                 passwordEncoder,
-                new JwtServiceImpl(jwtProperties),
-                jwtProperties,
+                jwtService,
                 new UserMapperImpl());
 
         when(refreshTokenRepository.save(any(RefreshToken.class)))
@@ -95,6 +95,38 @@ class AuthServiceTest {
     }
 
     @Test
+    void bothIssuedTokensAreSignedJwtsWithTheirOwnSecret() {
+        User user = persistedUser("hunter2pass");
+        String accessToken = jwtService.generateAccessToken(user).value();
+        String refreshToken = jwtService.generateRefreshToken(user).value();
+
+        assertThat(accessToken.split("\\.")).hasSize(3);
+        assertThat(refreshToken.split("\\.")).hasSize(3);
+        assertThat(accessToken).isNotEqualTo(refreshToken);
+
+        assertThat(jwtService.extractUserId(accessToken)).isEqualTo(1L);
+        assertThat(jwtService.extractEmail(accessToken)).isEqualTo("dev@example.com");
+        assertThat(jwtService.parseRefreshToken(refreshToken).userId()).isEqualTo(1L);
+    }
+
+    @Test
+    void accessTokenIsNotAcceptedAsARefreshToken() {
+        String accessToken = jwtService.generateAccessToken(persistedUser("hunter2pass")).value();
+
+        assertThatThrownBy(() -> jwtService.parseRefreshToken(accessToken))
+                .isInstanceOf(InvalidTokenException.class);
+        verify(refreshTokenRepository, never()).findByTokenHash(anyString());
+    }
+
+    @Test
+    void refreshTokenIsNotAcceptedAsAnAccessToken() {
+        String refreshToken = jwtService.generateRefreshToken(persistedUser("hunter2pass")).value();
+
+        assertThatThrownBy(() -> jwtService.extractEmail(refreshToken))
+                .isInstanceOf(InvalidTokenException.class);
+    }
+
+    @Test
     void registerRejectsDuplicateEmail() {
         when(userRepository.existsByEmailIgnoreCase(anyString())).thenReturn(true);
 
@@ -128,6 +160,7 @@ class AuthServiceTest {
     @Test
     void refreshRotatesTokenAndRevokesThePresentedOne() {
         User user = persistedUser("hunter2pass");
+        String presented = jwtService.generateRefreshToken(user).value();
         RefreshToken stored = RefreshToken.builder()
                 .id(10L)
                 .user(user)
@@ -136,16 +169,18 @@ class AuthServiceTest {
                 .build();
         when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(stored));
 
-        AuthenticationResult result = authService.refresh("some-raw-token");
+        AuthenticationResult result = authService.refresh(presented);
 
         assertThat(stored.getRevokedAt()).isNotNull();
-        assertThat(result.refreshToken()).isNotEqualTo("some-raw-token");
+        assertThat(result.refreshToken()).isNotEqualTo(presented);
+        assertThat(jwtService.parseRefreshToken(result.refreshToken()).userId()).isEqualTo(1L);
         verify(refreshTokenRepository).save(any(RefreshToken.class));
     }
 
     @Test
     void reusingRevokedTokenRevokesEveryTokenForThatUser() {
         User user = persistedUser("hunter2pass");
+        String stolen = jwtService.generateRefreshToken(user).value();
         RefreshToken revoked = RefreshToken.builder()
                 .id(10L)
                 .user(user)
@@ -155,7 +190,7 @@ class AuthServiceTest {
                 .build();
         when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(revoked));
 
-        assertThatThrownBy(() -> authService.refresh("stolen-token"))
+        assertThatThrownBy(() -> authService.refresh(stolen))
                 .isInstanceOf(InvalidTokenException.class);
 
         verify(refreshTokenRepository).revokeAllByUserId(eq(1L), any(Instant.class));
@@ -165,6 +200,7 @@ class AuthServiceTest {
     @Test
     void expiredRefreshTokenIsRejected() {
         User user = persistedUser("hunter2pass");
+        String presented = jwtService.generateRefreshToken(user).value();
         RefreshToken expired = RefreshToken.builder()
                 .id(10L)
                 .user(user)
@@ -173,16 +209,28 @@ class AuthServiceTest {
                 .build();
         when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(expired));
 
-        assertThatThrownBy(() -> authService.refresh("expired-token"))
+        assertThatThrownBy(() -> authService.refresh(presented))
                 .isInstanceOf(InvalidTokenException.class);
     }
 
     @Test
-    void unknownRefreshTokenIsRejected() {
-        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.empty());
-
+    void tamperedRefreshTokenIsRejectedBeforeAnyDatabaseLookup() {
         assertThatThrownBy(() -> authService.refresh("garbage"))
                 .isInstanceOf(InvalidTokenException.class);
+
+        verify(refreshTokenRepository, never()).findByTokenHash(anyString());
+    }
+
+    @Test
+    void validlySignedTokenThatIsNotOnRecordRevokesTheUsersSessions() {
+        String orphan = jwtService.generateRefreshToken(persistedUser("hunter2pass")).value();
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.refresh(orphan))
+                .isInstanceOf(InvalidTokenException.class);
+
+        verify(refreshTokenRepository).revokeAllByUserId(eq(1L), any(Instant.class));
+        verify(refreshTokenRepository, never()).save(any());
     }
 
     @Test
@@ -201,5 +249,22 @@ class AuthServiceTest {
                 !token.getTokenHash().equals(result.refreshToken())
                         && token.getTokenHash().length() == 64
                         && token.getTokenHash().matches("[0-9a-f]{64}")));
+    }
+
+    @Test
+    void logoutRevokesTheStoredToken() {
+        User user = persistedUser("hunter2pass");
+        String presented = jwtService.generateRefreshToken(user).value();
+        RefreshToken stored = RefreshToken.builder()
+                .id(10L)
+                .user(user)
+                .tokenHash("hash")
+                .expiresAt(Instant.now().plus(Duration.ofDays(1)))
+                .build();
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(stored));
+
+        authService.logout(presented);
+
+        assertThat(stored.getRevokedAt()).isNotNull();
     }
 }

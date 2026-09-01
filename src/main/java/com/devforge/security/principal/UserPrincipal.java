@@ -3,6 +3,7 @@ package com.devforge.security.principal;
 import com.devforge.entity.User;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -35,7 +36,7 @@ public class UserPrincipal implements UserDetails {
     }
 
     @Override
-    public String getUsername() {
+    public @NonNull String getUsername() {
         return email;
     }
 

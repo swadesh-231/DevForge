@@ -3,6 +3,7 @@ package com.devforge.security.service;
 import com.devforge.repository.UserRepository;
 import com.devforge.security.principal.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -16,7 +17,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+    public @NonNull UserDetails loadUserByUsername(@NonNull String email) throws UsernameNotFoundException {
         return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
                 .map(UserPrincipal::from)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));

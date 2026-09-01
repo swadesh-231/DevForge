@@ -3,7 +3,7 @@ package com.devforge.dto.project;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public record CreateProjectRequest(
+public record ProjectRequest(
 
         @NotBlank(message = "Project name is required")
         @Size(max = 100, message = "Project name cannot exceed 100 characters")

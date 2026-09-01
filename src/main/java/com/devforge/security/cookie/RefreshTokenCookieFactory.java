@@ -2,9 +2,12 @@ package com.devforge.security.cookie;
 
 import com.devforge.config.CookieProperties;
 import com.devforge.config.JwtProperties;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.WebUtils;
 
 import java.time.Duration;
 
@@ -15,7 +18,7 @@ public class RefreshTokenCookieFactory {
     private final JwtProperties jwtProperties;
 
     public ResponseCookie create(String token) {
-        return baseBuilder(token, jwtProperties.refreshTokenTtl()).build();
+        return baseBuilder(token, jwtProperties.refreshToken().expiration()).build();
     }
 
     public ResponseCookie expire() {
@@ -24,6 +27,11 @@ public class RefreshTokenCookieFactory {
 
     public String cookieName() {
         return cookieProperties.refreshTokenName();
+    }
+
+    public String read(HttpServletRequest request) {
+        Cookie cookie = WebUtils.getCookie(request, cookieProperties.refreshTokenName());
+        return cookie == null ? null : cookie.getValue();
     }
 
     private ResponseCookie.ResponseCookieBuilder baseBuilder(String value, Duration maxAge) {
