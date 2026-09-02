@@ -10,25 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @RequiredArgsConstructor
+@Transactional
 public class ProjectMemberServiceImpl implements ProjectMemberService {
-    @Override
-    public List<MemberResponse> getProjectMembers(Long projectId) {
-        return List.of();
-    }
-
-    @Override
-    public MemberResponse inviteMember(Long projectId, InviteMemberRequest request) {
-        return null;
-    }
-
-    @Override
-    public MemberResponse updateMemberRole(Long projectId, Long memberId, UpdateMemberRoleRequest request) {
-        return null;
-    }
-
-    @Override
-    public void removeProjectMember(Long projectId, Long memberId) {
-
-    }
-}

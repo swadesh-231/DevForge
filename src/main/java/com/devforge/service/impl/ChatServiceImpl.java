@@ -9,9 +9,24 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ChatServiceImpl implements ChatService {
+
+    private final ChatMessageRepository chatMessageRepository;
+    private final ChatSessionRepository chatSessionRepository;
+    private final AuthUtil authUtil;
+    private final ChatMapper chatMapper;
+
     @Override
-    public List<ChatMessageResponse> getProjectChatHistory(Long projectId) {
-        return List.of();
+    public List<ChatResponse> getProjectChatHistory(Long projectId) {
+        Long userId = authUtil.getCurrentUserId();
+
+        ChatSession chatSession = chatSessionRepository.getReferenceById(
+                new ChatSessionId(projectId, userId)
+        );
+
+        List<ChatMessage> chatMessageList = chatMessageRepository.findByChatSession(chatSession);
+
+        return chatMapper.fromListOfChatMessage(chatMessageList);
     }
 }

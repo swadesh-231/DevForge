@@ -4,7 +4,14 @@ import com.devforge.dto.file.FileContentResponse;
 import com.devforge.dto.file.FileTreeResponse;
 
 public interface ProjectFileService {
+
     FileTreeResponse getFileTree(Long projectId);
+
     FileContentResponse getFileContent(Long projectId, String path);
-    void saveFile(Long projectId, String filePath, String fileContent);
+
+    FileContentResponse saveFile(Long projectId, String path, String content);
+
+    void deleteFile(Long projectId, String path);
+
+    void deleteAllFiles(Long projectId);
 }
