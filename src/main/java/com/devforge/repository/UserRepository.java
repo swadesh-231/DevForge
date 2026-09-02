@@ -8,7 +8,12 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
+
     Optional<User> findByEmailIgnoreCaseAndDeletedAtIsNull(String email);
+
+    Optional<User> findByIdAndDeletedAtIsNull(Long id);
+
+    Optional<User> findByStripeCustomerId(String stripeCustomerId);
 
     boolean existsByEmailIgnoreCase(String email);
 }
