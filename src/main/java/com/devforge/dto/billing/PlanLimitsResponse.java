@@ -4,7 +4,7 @@ public record PlanLimitsResponse(
         String planName,
         Integer maxProjects,
         Integer maxTokensPerDay,
-        Integer maxPreview,
+        Integer maxPreviews,
         Boolean unlimitedAi
 ) {
 }

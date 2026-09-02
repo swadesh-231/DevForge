@@ -1,6 +1,5 @@
 package com.devforge.dto.billing;
 
-import com.devforge.entity.Subscription;
 import com.devforge.entity.enums.SubscriptionStatus;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -11,28 +10,11 @@ public record SubscriptionResponse(
         Long id,
         PlanResponse plan,
         SubscriptionStatus status,
-        String razorpaySubscriptionId,
+        String stripeSubscriptionId,
         Instant currentPeriodStart,
         Instant currentPeriodEnd,
-        Instant chargeAt,
-        Integer paidCount,
-        Integer remainingCount,
+        Instant trialEndsAt,
         Boolean cancelAtPeriodEnd,
-        Instant cancelledAt
+        Instant canceledAt
 ) {
-    public static SubscriptionResponse from(Subscription subscription) {
-        return new SubscriptionResponse(
-                subscription.getId(),
-                PlanResponse.from(subscription.getPlan()),
-                subscription.getStatus(),
-                subscription.getRazorpaySubscriptionId(),
-                subscription.getCurrentPeriodStart(),
-                subscription.getCurrentPeriodEnd(),
-                subscription.getChargeAt(),
-                subscription.getPaidCount(),
-                subscription.getRemainingCount(),
-                subscription.getCancelAtPeriodEnd(),
-                subscription.getCancelledAt()
-        );
-    }
 }

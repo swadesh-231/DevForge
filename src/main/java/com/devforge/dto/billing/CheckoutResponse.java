@@ -1,11 +1,10 @@
 package com.devforge.dto.billing;
 
 public record CheckoutResponse(
-        String razorpayKeyId,
-        String razorpaySubscriptionId,
-        String shortUrl,
+        String checkoutSessionId,
+        String checkoutUrl,
         String planName,
-        Integer amountInPaise,
+        Integer amountMinor,
         String currency
 ) {
 }
