@@ -22,8 +22,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 @Slf4j
 @Service
@@ -53,6 +55,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
         StringBuilder responseBuffer = new StringBuilder();
         AtomicReference<Usage> usage = new AtomicReference<>();
         AtomicLong firstTokenAt = new AtomicLong();
+        AtomicBoolean recorded = new AtomicBoolean();
         long startedAt = System.currentTimeMillis();
 
         Flux<StreamResponse> deltas = chatClient.prompt()
@@ -65,8 +68,9 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 .stream()
                 .chatResponse()
                 .doOnNext(response -> {
-                    if (response.getMetadata().getUsage() != null) {
-                        usage.set(response.getMetadata().getUsage());
+                    Usage chunkUsage = response.getMetadata().getUsage();
+                    if (chunkUsage != null) {
+                        usage.set(chunkUsage);
                     }
                 })
                 .mapNotNull(response -> response.getResult() == null
@@ -79,32 +83,29 @@ public class AiGenerationServiceImpl implements AiGenerationService {
                 })
                 .map(StreamResponse::delta);
 
-        Mono<StreamResponse> completion = record(sessionId, request, responseBuffer, usage, firstTokenAt, startedAt)
-                .thenReturn(StreamResponse.complete());
+        Mono<Void> recordTurn = Mono.<Void>fromRunnable(() -> {
+                    if (!recorded.compareAndSet(false, true)) {
+                        return;
+                    }
+                    chatTurnService.recordAssistantTurn(new AssistantTurn(
+                            sessionId,
+                            request.content(),
+                            responseBuffer.toString(),
+                            tokens(usage.get(), Usage::getPromptTokens),
+                            tokens(usage.get(), Usage::getCompletionTokens),
+                            thinkingSeconds(firstTokenAt.get(), startedAt)));
+                })
+                .subscribeOn(Schedulers.boundedElastic());
 
-        return Flux.concat(Flux.just(StreamResponse.started(sessionId)), deltas, completion)
+        return Flux.concat(
+                        Flux.just(StreamResponse.started(sessionId)),
+                        deltas,
+                        recordTurn.thenReturn(StreamResponse.complete()))
                 .onErrorResume(error -> {
                     log.error("AI generation failed for project {}", projectId, error);
-                    return record(sessionId, request, responseBuffer, usage, firstTokenAt, startedAt)
-                            .thenReturn(StreamResponse.failed(GENERATION_FAILED))
+                    return recordTurn.thenReturn(StreamResponse.failed(GENERATION_FAILED))
                             .onErrorReturn(StreamResponse.failed(GENERATION_FAILED));
                 });
-    }
-
-    private Mono<Void> record(Long sessionId,
-                              SendMessageRequest request,
-                              StringBuilder responseBuffer,
-                              AtomicReference<Usage> usage,
-                              AtomicLong firstTokenAt,
-                              long startedAt) {
-        return Mono.<Void>fromRunnable(() -> chatTurnService.recordAssistantTurn(new AssistantTurn(
-                        sessionId,
-                        request.content(),
-                        responseBuffer.toString(),
-                        tokens(usage.get(), Usage::getPromptTokens),
-                        tokens(usage.get(), Usage::getCompletionTokens),
-                        thinkingSeconds(firstTokenAt.get(), startedAt))))
-                .subscribeOn(Schedulers.boundedElastic());
     }
 
     private static long thinkingSeconds(long firstTokenAt, long startedAt) {
@@ -112,7 +113,7 @@ public class AiGenerationServiceImpl implements AiGenerationService {
         return Math.max(0, (reference - startedAt) / 1000);
     }
 
-    private static int tokens(Usage usage, java.util.function.Function<Usage, Integer> extractor) {
+    private static int tokens(Usage usage, Function<Usage, Integer> extractor) {
         if (usage == null) {
             return 0;
         }
