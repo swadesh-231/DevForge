@@ -1,13 +1,12 @@
 package com.devforge.entity.enums;
 
 public enum SubscriptionStatus {
-    CREATED,
-    AUTHENTICATED,
+    INCOMPLETE,
+    INCOMPLETE_EXPIRED,
+    TRIALING,
     ACTIVE,
-    PENDING,
-    HALTED,
-    CANCELLED,
-    COMPLETED,
-    EXPIRED,
-    PAUSED
+    PAST_DUE,
+    UNPAID,
+    PAUSED,
+    CANCELED
 }

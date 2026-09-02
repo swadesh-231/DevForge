@@ -39,28 +39,25 @@ public class Payment {
     @JoinColumn(name = "subscription_id")
     private Subscription subscription;
 
-    @Column(name = "razorpay_payment_id", unique = true, length = 64)
+    @Column(name = "stripe_payment_intent_id", unique = true, length = 64)
     @ToString.Include
-    private String razorpayPaymentId;
+    private String stripePaymentIntentId;
 
-    @Column(name = "razorpay_order_id", length = 64)
-    private String razorpayOrderId;
+    @Column(name = "stripe_invoice_id", length = 64)
+    private String stripeInvoiceId;
 
-    @Column(name = "razorpay_invoice_id", length = 64)
-    private String razorpayInvoiceId;
-
-    @Column(length = 256)
-    private String razorpaySignature;
+    @Column(name = "stripe_charge_id", length = 64)
+    private String stripeChargeId;
 
     @Column(nullable = false)
-    private Integer amountInPaise;
+    private Integer amountMinor;
 
     @Builder.Default
     @Column(nullable = false, length = 3)
     private String currency = "INR";
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)
     @ToString.Include
     private PaymentStatus status;
 
@@ -69,12 +66,15 @@ public class Payment {
     private PaymentMethod method;
 
     @Column(length = 64)
-    private String errorCode;
+    private String failureCode;
 
     @Column(columnDefinition = "TEXT")
-    private String errorDescription;
+    private String failureMessage;
 
-    private Instant capturedAt;
+    @Column(length = 512)
+    private String receiptUrl;
+
+    private Instant paidAt;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

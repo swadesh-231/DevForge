@@ -7,6 +7,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.util.EnumSet;
+import java.util.Set;
 
 @Entity
 @AllArgsConstructor
@@ -24,6 +26,13 @@ import java.time.Instant;
         }
 )
 public class Subscription {
+
+    public static final Set<SubscriptionStatus> ENTITLING_STATUSES = EnumSet.of(
+            SubscriptionStatus.ACTIVE,
+            SubscriptionStatus.TRIALING,
+            SubscriptionStatus.PAST_DUE
+    );
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
@@ -31,51 +40,39 @@ public class Subscription {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(nullable = false, name = "user_id")
+    @JoinColumn(name = "user_id", nullable = false, updatable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(nullable = false, name = "plan_id")
+    @JoinColumn(name = "plan_id", nullable = false)
     private Plan plan;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)
     @ToString.Include
     private SubscriptionStatus status;
 
-    @Column(name = "razorpay_subscription_id", unique = true, length = 64)
+    @Column(name = "stripe_subscription_id", unique = true, length = 64)
     @ToString.Include
-    private String razorpaySubscriptionId;
+    private String stripeSubscriptionId;
 
-    @Column(name = "razorpay_customer_id", length = 64)
-    private String razorpayCustomerId;
+    @Column(name = "stripe_customer_id", length = 64)
+    private String stripeCustomerId;
 
-    @Column(length = 512)
-    private String shortUrl;
-
-    private Integer totalCount;
-
-    @Builder.Default
-    @Column(nullable = false)
-    private Integer paidCount = 0;
-
-    private Integer remainingCount;
-
-    @Builder.Default
-    @Column(nullable = false)
-    private Integer authAttempts = 0;
-
-    private Instant chargeAt;
+    @Column(name = "stripe_price_id", length = 64)
+    private String stripePriceId;
 
     private Instant currentPeriodStart;
 
     private Instant currentPeriodEnd;
 
+    private Instant trialEndsAt;
+
     @Builder.Default
     @Column(nullable = false)
     private Boolean cancelAtPeriodEnd = false;
 
-    private Instant cancelledAt;
+    private Instant canceledAt;
 
     private Instant endedAt;
 
@@ -89,4 +86,8 @@ public class Subscription {
     @UpdateTimestamp
     @Column(nullable = false)
     private Instant updatedAt;
+
+    public boolean isEntitling() {
+        return ENTITLING_STATUSES.contains(status);
+    }
 }

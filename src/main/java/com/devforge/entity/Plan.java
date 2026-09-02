@@ -30,14 +30,18 @@ public class Plan {
     @ToString.Include
     private String name;
 
-    @Column(name = "razorpay_plan_id", unique = true, length = 64)
-    private String razorpayPlanId;
+    @Column(name = "stripe_product_id", length = 64)
+    private String stripeProductId;
+
+    @Column(name = "stripe_price_id", unique = true, length = 64)
+    @ToString.Include
+    private String stripePriceId;
 
     @NotNull(message = "Amount is required")
     @Min(value = 0, message = "Amount cannot be negative")
     @Builder.Default
     @Column(nullable = false)
-    private Integer amountInPaise = 0;
+    private Integer amountMinor = 0;
 
     @NotBlank
     @Builder.Default
@@ -58,15 +62,18 @@ public class Plan {
 
     @NotNull(message = "Maximum projects is required")
     @Min(value = 0, message = "Maximum projects cannot be negative")
+    @Column(nullable = false)
     private Integer maxProjects;
 
     @NotNull(message = "Maximum tokens per day is required")
     @Min(value = 0, message = "Maximum tokens per day cannot be negative")
+    @Column(nullable = false)
     private Integer maxTokensPerDay;
 
     @NotNull(message = "Maximum previews is required")
     @Min(value = 0, message = "Maximum previews cannot be negative")
-    private Integer maxPreview;
+    @Column(nullable = false)
+    private Integer maxPreviews;
 
     @NotNull(message = "Unlimited AI value is required")
     @Builder.Default
@@ -77,4 +84,8 @@ public class Plan {
     @Builder.Default
     @Column(nullable = false)
     private Boolean isActive = true;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer displayOrder = 0;
 }

@@ -13,7 +13,7 @@ import java.time.Instant;
         name = "users",
         indexes = {
                 @Index(name = "idx_users_email", columnList = "email"),
-                @Index(name = "idx_users_razorpay_customer_id", columnList = "razorpay_customer_id")
+                @Index(name = "idx_users_stripe_customer_id", columnList = "stripe_customer_id")
         }
 )
 @AllArgsConstructor
@@ -51,8 +51,8 @@ public class User {
     @Column(length = 128)
     private String imageFileId;
 
-    @Column(name = "razorpay_customer_id", unique = true, length = 64)
-    private String razorpayCustomerId;
+    @Column(name = "stripe_customer_id", unique = true, length = 64)
+    private String stripeCustomerId;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

@@ -19,7 +19,7 @@ import java.time.Instant;
 @Table(name = "webhook_events",
         indexes = {
                 @Index(name = "idx_webhook_events_processed_at", columnList = "processed_at"),
-                @Index(name = "idx_webhook_events_event", columnList = "event")
+                @Index(name = "idx_webhook_events_type", columnList = "type")
         }
 )
 public class WebhookEvent {
@@ -29,21 +29,17 @@ public class WebhookEvent {
     @ToString.Include
     private Long id;
 
-    @Column(name = "razorpay_event_id", nullable = false, unique = true, length = 64)
+    @Column(name = "stripe_event_id", nullable = false, unique = true, length = 64)
     @ToString.Include
-    private String razorpayEventId;
+    private String stripeEventId;
 
     @Column(nullable = false, length = 64)
     @ToString.Include
-    private String event;
+    private String type;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
     private String payload;
-
-    @Builder.Default
-    @Column(nullable = false)
-    private Boolean signatureValid = false;
 
     private Instant processedAt;
 

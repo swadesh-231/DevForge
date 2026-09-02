@@ -1,5 +1,10 @@
 package com.devforge.entity.enums;
 
 public enum PaymentStatus {
-    CREATED, AUTHORIZED, CAPTURED, REFUNDED, FAILED
+    PENDING,
+    PROCESSING,
+    SUCCEEDED,
+    FAILED,
+    CANCELED,
+    REFUNDED
 }

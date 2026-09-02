@@ -41,13 +41,15 @@ public class ProjectFile {
     @ToString.Include
     private String path;
 
-    @Column(nullable = false, length = 512)
+    @Column(nullable = false, unique = true, length = 640)
     private String storageKey;
 
     @Column(length = 64)
     private String contentHash;
 
-    private Long sizeBytes;
+    @Builder.Default
+    @Column(nullable = false)
+    private Long sizeBytes = 0L;
 
     @Column(length = 128)
     private String mimeType;
@@ -62,6 +64,4 @@ public class ProjectFile {
     @UpdateTimestamp
     @Column(nullable = false)
     private Instant updatedAt;
-
-    private Instant deletedAt;
 }
