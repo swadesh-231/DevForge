@@ -1,8 +1,9 @@
 package com.devforge.service.impl;
 
-import com.devforge.dto.project.ProjectRequest;
+import com.devforge.dto.project.CreateProjectRequest;
 import com.devforge.dto.project.ProjectResponse;
 import com.devforge.dto.project.ProjectSummaryResponse;
+import com.devforge.dto.project.UpdateProjectRequest;
 import com.devforge.entity.Project;
 import com.devforge.entity.ProjectMember;
 import com.devforge.entity.ProjectMemberId;
@@ -14,18 +15,14 @@ import com.devforge.exception.ResourceNotFoundException;
 import com.devforge.mapper.ProjectMapper;
 import com.devforge.repository.ProjectMemberRepository;
 import com.devforge.repository.ProjectRepository;
-import com.devforge.repository.ProjectRepository.ProjectWithRole;
 import com.devforge.repository.UserRepository;
-import com.devforge.security.principal.UserPrincipal;
+import com.devforge.security.CurrentUserProvider;
+import com.devforge.security.access.ProjectAccessGuard;
 import com.devforge.service.ProjectService;
 import com.devforge.service.ProjectTemplateService;
 import com.devforge.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,20 +51,34 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
     private final ProjectMapper projectMapper;
+    private final ProjectAccessGuard projectAccessGuard;
+    private final CurrentUserProvider currentUserProvider;
     private final SubscriptionService subscriptionService;
     private final ProjectTemplateService projectTemplateService;
 
     @Override
+    public List<ProjectSummaryResponse> getUserProjects() {
+        return projectMapper.toProjectSummaryResponses(
+                projectRepository.findAllAccessibleByUser(currentUserProvider.requireUserId()));
+    }
+
+    @Override
+    public ProjectSummaryResponse getUserProjectById(Long projectId) {
+        return projectMapper.toProjectSummaryResponse(
+                projectAccessGuard.require(projectId, ProjectPermission.VIEW));
+    }
+
+    @Override
     @Transactional
-    public ProjectResponse createProject(ProjectRequest request) {
-        if (!subscriptionService.canCreateNewProject()) {
+    public ProjectResponse createProject(CreateProjectRequest request) {
+        Long userId = currentUserProvider.requireUserId();
+
+        if (!subscriptionService.canCreateProject(userId)) {
             throw new BadRequestException("PROJECT_LIMIT_REACHED",
                     "Your current plan does not allow another project. Upgrade your plan to continue.");
         }
 
-        Long userId = currentUserId();
-        User owner = userRepository.findById(userId)
-                .filter(user -> user.getDeletedAt() == null)
+        User owner = userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
         String name = request.name().trim();
@@ -94,26 +105,13 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public List<ProjectSummaryResponse> getUserProjects() {
-        return projectRepository.findAllAccessibleByUser(currentUserId()).stream()
-                .map(accessible -> projectMapper.toProjectSummaryResponse(
-                        accessible.getProject(), accessible.getRole()))
-                .toList();
-    }
-
-    @Override
-    public ProjectSummaryResponse getUserProjectById(Long projectId) {
-        ProjectWithRole accessible = requireAccess(projectId, ProjectPermission.VIEW);
-        return projectMapper.toProjectSummaryResponse(accessible.getProject(), accessible.getRole());
-    }
-
-    @Override
     @Transactional
-    public ProjectResponse updateProject(Long projectId, ProjectRequest request) {
-        Project project = requireAccess(projectId, ProjectPermission.EDIT).getProject();
+    public ProjectResponse updateProject(Long projectId, UpdateProjectRequest request) {
+        Project project = projectAccessGuard.requireProject(projectId, ProjectPermission.EDIT);
 
-        // PATCH semantics: the name is always supplied (@NotBlank), the rest only when present.
-        project.setName(request.name().trim());
+        if (request.name() != null) {
+            project.setName(request.name().trim());
+        }
         if (request.description() != null) {
             project.setDescription(normalizeDescription(request.description()));
         }
@@ -121,54 +119,18 @@ public class ProjectServiceImpl implements ProjectService {
             project.setIsPublic(request.isPublic());
         }
 
-        // The slug is part of the project's public URL, so it stays fixed across renames.
         return projectMapper.toProjectResponse(project);
     }
 
     @Override
     @Transactional
     public void softDelete(Long projectId) {
-        Project project = requireAccess(projectId, ProjectPermission.DELETE).getProject();
+        Project project = projectAccessGuard.requireProject(projectId, ProjectPermission.DELETE);
 
         project.setDeletedAt(Instant.now());
-        log.info("Soft deleted project {} by user {}", projectId, currentUserId());
+        log.info("Soft deleted project {} by user {}", projectId, currentUserProvider.requireUserId());
     }
 
-    ///  INTERNAL FUNCTIONS
-
-    /**
-     * Loads a project the caller is a member of together with the caller's role, and asserts that the
-     * role grants {@code permission}. A non-member gets a 404 rather than a 403 so that project
-     * existence is not leaked.
-     */
-    private ProjectWithRole requireAccess(Long projectId, ProjectPermission permission) {
-        Long userId = currentUserId();
-        ProjectWithRole accessible = projectRepository
-                .findAccessibleProjectByIdWithRole(projectId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
-
-        if (!accessible.getRole().getPermissions().contains(permission)) {
-            log.debug("User {} with role {} denied {} on project {}",
-                    userId, accessible.getRole(), permission, projectId);
-            throw new AccessDeniedException("Missing permission " + permission.getValue());
-        }
-        return accessible;
-    }
-
-    private Long currentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null
-                || !authentication.isAuthenticated()
-                || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
-            throw new AuthenticationCredentialsNotFoundException("No authenticated user found");
-        }
-        return principal.getId();
-    }
-
-    /**
-     * Builds a URL-safe slug from the project name and appends random entropy, which keeps the
-     * unique slug column collision-free without an extra lookup-and-retry round trip.
-     */
     private static String generateSlug(String name) {
         String normalized = Normalizer.normalize(name, Normalizer.Form.NFKD);
         String base = DIACRITICS.matcher(normalized).replaceAll("");

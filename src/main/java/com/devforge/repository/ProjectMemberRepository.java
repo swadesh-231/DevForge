@@ -38,6 +38,7 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Pr
             JOIN pm.project p
             WHERE pm.id.userId = :userId
               AND pm.projectRole = com.devforge.entity.enums.ProjectRole.OWNER
+              AND pm.acceptedAt IS NOT NULL
               AND p.deletedAt IS NULL
             """)
     int countProjectsOwnedByUser(@Param("userId") Long userId);
@@ -48,4 +49,14 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Pr
               AND pm.projectRole = com.devforge.entity.enums.ProjectRole.OWNER
             """)
     int countOwners(@Param("projectId") Long projectId);
+
+    @Query("""
+            SELECT pm FROM ProjectMember pm
+            JOIN FETCH pm.project p
+            WHERE pm.id.userId = :userId
+              AND pm.acceptedAt IS NULL
+              AND p.deletedAt IS NULL
+            ORDER BY pm.invitedAt DESC
+            """)
+    List<ProjectMember> findPendingInvitationsByUserId(@Param("userId") Long userId);
 }

@@ -18,6 +18,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
             FROM Project p
             JOIN ProjectMember pm ON pm.id.projectId = p.id
             WHERE pm.id.userId = :userId
+              AND pm.acceptedAt IS NOT NULL
               AND p.deletedAt IS NULL
             ORDER BY p.updatedAt DESC
             """)
@@ -29,6 +30,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
             JOIN ProjectMember pm ON pm.id.projectId = p.id
             WHERE p.id = :projectId
               AND pm.id.userId = :userId
+              AND pm.acceptedAt IS NOT NULL
               AND p.deletedAt IS NULL
             """)
     Optional<ProjectWithRole> findAccessibleByIdWithRole(@Param("projectId") Long projectId,

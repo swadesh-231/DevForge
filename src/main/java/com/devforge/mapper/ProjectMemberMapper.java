@@ -1,5 +1,6 @@
 package com.devforge.mapper;
 
+import com.devforge.dto.member.InvitationResponse;
 import com.devforge.dto.member.MemberResponse;
 import com.devforge.entity.ProjectMember;
 import org.mapstruct.Mapper;
@@ -17,4 +18,12 @@ public interface ProjectMemberMapper {
     MemberResponse toMemberResponse(ProjectMember projectMember);
 
     List<MemberResponse> toMemberResponses(List<ProjectMember> projectMembers);
+
+    @Mapping(target = "projectId", source = "project.id")
+    @Mapping(target = "projectName", source = "project.name")
+    @Mapping(target = "projectSlug", source = "project.slug")
+    @Mapping(target = "role", source = "projectRole")
+    InvitationResponse toInvitationResponse(ProjectMember projectMember);
+
+    List<InvitationResponse> toInvitationResponses(List<ProjectMember> projectMembers);
 }
