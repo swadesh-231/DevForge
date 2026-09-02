@@ -53,6 +53,9 @@ public class ClasspathProjectTemplateService implements ProjectTemplateService {
                 continue;
             }
             String path = relativePath(resource, templateDirectory);
+            if (path.isEmpty() || path.endsWith("/")) {
+                continue;
+            }
             projectFileService.saveFile(projectId, path, read(resource));
         }
 
