@@ -25,10 +25,6 @@ public class RefreshTokenCookieFactory {
         return baseBuilder("", Duration.ZERO).build();
     }
 
-    public String cookieName() {
-        return cookieProperties.refreshTokenName();
-    }
-
     public String read(HttpServletRequest request) {
         Cookie cookie = WebUtils.getCookie(request, cookieProperties.refreshTokenName());
         return cookie == null ? null : cookie.getValue();

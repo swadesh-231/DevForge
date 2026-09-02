@@ -12,6 +12,4 @@ public interface ProjectFileService {
     FileContentResponse saveFile(Long projectId, String path, String content);
 
     void deleteFile(Long projectId, String path);
-
-    void deleteAllFiles(Long projectId);
 }

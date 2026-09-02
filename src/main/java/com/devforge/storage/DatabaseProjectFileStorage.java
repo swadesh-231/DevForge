@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collection;
 import java.util.Optional;
 
 @Component
@@ -41,13 +40,5 @@ public class DatabaseProjectFileStorage implements ProjectFileStorage {
     @Transactional
     public void delete(String storageKey) {
         contentRepository.deleteById(storageKey);
-    }
-
-    @Override
-    @Transactional
-    public void deleteAll(Collection<String> storageKeys) {
-        if (!storageKeys.isEmpty()) {
-            contentRepository.deleteAllByStorageKeyIn(storageKeys);
-        }
     }
 }

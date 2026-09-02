@@ -6,6 +6,4 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProjectFileContentRepository extends JpaRepository<ProjectFileContent, String> {
-
-    void deleteAllByStorageKeyIn(Iterable<String> storageKeys);
 }

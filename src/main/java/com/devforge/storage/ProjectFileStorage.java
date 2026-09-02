@@ -1,6 +1,5 @@
 package com.devforge.storage;
 
-import java.util.Collection;
 import java.util.Optional;
 
 public interface ProjectFileStorage {
@@ -12,6 +11,4 @@ public interface ProjectFileStorage {
     Optional<String> read(String storageKey);
 
     void delete(String storageKey);
-
-    void deleteAll(Collection<String> storageKeys);
 }

@@ -2,7 +2,6 @@ package com.devforge.repository;
 
 import com.devforge.entity.ProjectMember;
 import com.devforge.entity.ProjectMemberId;
-import com.devforge.entity.enums.ProjectRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -27,13 +26,6 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Pr
     boolean existsByIdProjectIdAndIdUserId(Long projectId, Long userId);
 
     @Query("""
-            SELECT pm.projectRole FROM ProjectMember pm
-            WHERE pm.id.projectId = :projectId AND pm.id.userId = :userId
-            """)
-    Optional<ProjectRole> findRoleByProjectIdAndUserId(@Param("projectId") Long projectId,
-                                                       @Param("userId") Long userId);
-
-    @Query("""
             SELECT COUNT(pm) FROM ProjectMember pm
             JOIN pm.project p
             WHERE pm.id.userId = :userId
@@ -42,13 +34,6 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Pr
               AND p.deletedAt IS NULL
             """)
     int countProjectsOwnedByUser(@Param("userId") Long userId);
-
-    @Query("""
-            SELECT COUNT(pm) FROM ProjectMember pm
-            WHERE pm.id.projectId = :projectId
-              AND pm.projectRole = com.devforge.entity.enums.ProjectRole.OWNER
-            """)
-    int countOwners(@Param("projectId") Long projectId);
 
     @Query("""
             SELECT pm FROM ProjectMember pm

@@ -106,14 +106,6 @@ public class ProjectFileServiceImpl implements ProjectFileService {
         projectFileStorage.delete(file.getStorageKey());
     }
 
-    @Override
-    @Transactional
-    public void deleteAllFiles(Long projectId) {
-        List<String> storageKeys = projectFileRepository.findStorageKeysByProjectId(projectId);
-        projectFileRepository.deleteAll(projectFileRepository.findByProjectIdOrderByPathAsc(projectId));
-        projectFileStorage.deleteAll(storageKeys);
-    }
-
     private static String mimeTypeOf(String path) {
         int lastDot = path.lastIndexOf('.');
         if (lastDot >= 0 && lastDot < path.length() - 1) {
