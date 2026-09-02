@@ -4,49 +4,10 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
-public final class PromptTemplate {
-
-    private PromptTemplate() {
-    }
-    public static final String REACT_VERSION = "19.2.8";
-    public static final String TYPESCRIPT_VERSION = "7.0.2";
-    public static final String VITE_VERSION = "8.2.2";
-    public static final String VITE_PLUGIN_REACT_VERSION = "6.1.1";
-    public static final String TAILWIND_VERSION = "4.3.3";
-    public static final String DAISY_VERSION = "5.7.22";
-    public static final String LUCID_VERSION = "1.38.0";
-    public static final String MOTION_VERSION = "13.1.1";
+public final class CodeGenerationPrompt {
 
     private static final DateTimeFormatter TIMESTAMP =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'").withZone(ZoneOffset.UTC);
-    private static final String PACKAGE_JSON = """
-            {
-              "type": "module",
-              "dependencies": {
-                "react": "REACT_V",
-                "react-dom": "REACT_V",
-                "lucid-react": "LUCID_V",
-                "motion": "MOTION_V"
-              },
-              "devDependencies": {
-                "@tailwindcss/vite": "TAILWIND_V",
-                "@types/react": "19.2.x",
-                "@types/react-dom": "19.2.x",
-                "@vitejs/plugin-react": "PLUGIN_REACT_V",
-                "daisy": "DAISY_V",
-                "tailwindcss": "TAILWIND_V",
-                "typescript": "TYPESCRIPT_V",
-                "vite": "VITE_V"
-              }
-            }"""
-            .replace("REACT_V", REACT_VERSION)
-            .replace("LUCID_V", LUCID_VERSION)
-            .replace("MOTION_V", MOTION_VERSION)
-            .replace("PLUGIN_REACT_V", VITE_PLUGIN_REACT_VERSION)
-            .replace("TAILWIND_V", TAILWIND_VERSION)
-            .replace("DAISY_V", DAISY_VERSION)
-            .replace("TYPESCRIPT_V", TYPESCRIPT_VERSION)
-            .replace("VITE_V", VITE_VERSION);
 
     private static final String CODE_GENERATION_SYSTEM_PROMPT_TEMPLATE = """
             You are DevForge, an elite React architect. You turn a single prompt into a complete, running,
@@ -258,16 +219,19 @@ public final class PromptTemplate {
 
             Plan once, execute once, and ship a UI worth screenshotting.
             """;
-    public static String codeGenerationSystemPrompt() {
+    public static String systemPrompt() {
         return CODE_GENERATION_SYSTEM_PROMPT_TEMPLATE
                 .replace("{{NOW}}", TIMESTAMP.format(Instant.now()))
-                .replace("{{PACKAGE_JSON}}", PACKAGE_JSON)
-                .replace("{{REACT}}", REACT_VERSION)
-                .replace("{{TS}}", TYPESCRIPT_VERSION)
-                .replace("{{VITE}}", VITE_VERSION)
-                .replace("{{TAILWIND}}", TAILWIND_VERSION)
-                .replace("{{DAISY}}", DAISY_VERSION)
-                .replace("{{LUCID}}", LUCID_VERSION)
-                .replace("{{MOTION}}", MOTION_VERSION);
+                .replace("{{PACKAGE_JSON}}", ProjectRuntimeManifest.PACKAGE_JSON)
+                .replace("{{REACT}}", ProjectRuntimeManifest.REACT_VERSION)
+                .replace("{{TS}}", ProjectRuntimeManifest.TYPESCRIPT_VERSION)
+                .replace("{{VITE}}", ProjectRuntimeManifest.VITE_VERSION)
+                .replace("{{TAILWIND}}", ProjectRuntimeManifest.TAILWIND_VERSION)
+                .replace("{{DAISYUI}}", ProjectRuntimeManifest.DAISYUI_VERSION)
+                .replace("{{LUCIDE}}", ProjectRuntimeManifest.LUCIDE_VERSION)
+                .replace("{{MOTION}}", ProjectRuntimeManifest.MOTION_VERSION);
+    }
+
+    private CodeGenerationPrompt() {
     }
 }

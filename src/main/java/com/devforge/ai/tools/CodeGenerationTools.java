@@ -1,43 +1,52 @@
 package com.devforge.ai.tools;
 
+import com.devforge.exception.ApiException;
 import com.devforge.service.ProjectFileService;
+import com.devforge.validation.ProjectFilePaths;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.ArrayList;
-import java.util.List;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
-@RequiredArgsConstructor
+import java.util.ArrayList;
+import java.util.List;
+
 @Slf4j
+@RequiredArgsConstructor
 public class CodeGenerationTools {
+
     private final ProjectFileService projectFileService;
     private final Long projectId;
 
     @Tool(name = "read_files",
-            description = "Read the content of files. Only input the file names present inside the FILE_TREE. DO NOT input any path which is not present under the FILE_TREE.")
+            description = "Read the content of files. Only input file paths present inside the FILE_TREE. "
+                    + "DO NOT input any path which is not present under the FILE_TREE.")
     public List<String> readFiles(
-            @ToolParam(description = "List of relative paths (e.g., ['src/App.tsx'])")
-            List<String> paths
-    ) {
+            @ToolParam(description = "List of project-relative paths, for example ['src/App.tsx']")
+            List<String> paths) {
 
-        List<String> result = new ArrayList<>();
-
-        for(String path: paths) {
-            String cleanPath = path.startsWith("/") ? path.substring(1) : path;
-
-            log.info("Requested file: {}", cleanPath);
-
-            String content = projectFileService.getFileContent(projectId, cleanPath).content();
-
-            result.add(String.format(
-                    "--- START OF FILE: %s ---\n%s\n--- END OF FILE ---",
-                    cleanPath, content
-            ));
-
+        List<String> contents = new ArrayList<>();
+        if (paths == null) {
+            return contents;
         }
 
-        return result;
+        for (String path : paths) {
+            contents.add(readFile(path));
+        }
+        return contents;
+    }
+
+    private String readFile(String path) {
+        try {
+            String normalizedPath = ProjectFilePaths.normalize(path);
+            String content = projectFileService.getFileContent(projectId, normalizedPath).content();
+            return """
+                    --- START OF FILE: %s ---
+                    %s
+                    --- END OF FILE ---""".formatted(normalizedPath, content);
+        } catch (ApiException exception) {
+            log.debug("Tool read failed for {} in project {}: {}", path, projectId, exception.getMessage());
+            return "--- FILE NOT AVAILABLE: %s (%s) ---".formatted(path, exception.getMessage());
+        }
     }
 }
