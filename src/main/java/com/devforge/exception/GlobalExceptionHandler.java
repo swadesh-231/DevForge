@@ -1,17 +1,20 @@
 package com.devforge.exception;
 
-import com.devforge.dto.common.ApiResponse;
 import com.devforge.dto.common.ApiResponse.ApiError;
 import com.devforge.dto.common.ApiResponse.FieldViolation;
+import com.devforge.dto.common.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
@@ -86,6 +90,34 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleMethodNotSupported(
             HttpRequestMethodNotSupportedException exception, HttpServletRequest request) {
         return build(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", exception.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnsupportedMediaType(
+            HttpMediaTypeNotSupportedException exception, HttpServletRequest request) {
+        return build(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "UNSUPPORTED_MEDIA_TYPE",
+                "Unsupported content type for this endpoint", request, null);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotAcceptable(
+            HttpMediaTypeNotAcceptableException exception, HttpServletRequest request) {
+        return build(HttpStatus.NOT_ACCEPTABLE, "NOT_ACCEPTABLE",
+                "No representation available for the requested media type", request, null);
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingPart(
+            MissingServletRequestPartException exception, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, "MISSING_PART",
+                "Required part '" + exception.getRequestPartName() + "' is missing", request, null);
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<Void>> handleOptimisticLocking(
+            OptimisticLockingFailureException exception, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, "CONCURRENT_MODIFICATION",
+                "This resource was modified by another request, please retry", request, null);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
